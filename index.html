@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="UTF-8">
+		<title>进度条</title>
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+			}
+			
+			.percent-box {
+				width: 500px;
+				height: 15px;
+				background: #eee;
+				margin: 20px;
+				position: relative;
+				cursor: pointer;
+				border-radius: 10px;
+			}
+			
+			.percent {
+				width: 0;
+				height: 100%;
+				background: green;
+				border-radius: 10px;
+			}
+			
+			.num {
+				position: absolute;
+				right: 0;
+				top: -20px;
+			}
+		</style>
+	</head>
+
+	<body>
+		<div class="percent-box">
+			<div class="percent" data-width="100"></div>
+			<span class="num"></span>
+		</div>
+		<div class="percent-box" style="width:600px">
+			<div class="percent" data-width="80"></div>
+			<span class="num"></span>
+		</div>
+		<script src="http://cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
+		<script>
+			;(function() {
+				// 1，方法：
+				function PercentboxProp($this){
+					if(!$this)return false;
+					if($this.type === "mousemove" || $this.type === "click"){
+						$this = $($this.target);
+					}
+					this.bWidth = $this.width();
+					this.dWidth = $this.find(".percent").data("width");
+				};
+				PercentboxProp.prototype.CountScale = function(width) {
+					return (width / this.bWidth *100).toFixed(0);
+				}
+				function PercentboxPosition(e){
+					if(!e)return false;
+					var $this = $(e.target);
+					PercentboxProp.call(this,e);
+					var x = e.pageX,
+						offsetX = $this.offset().left,
+						newWidth = x - offsetX;
+						this.newWidth = newWidth;
+				}
+				PercentboxPosition.prototype = new PercentboxProp();
+				
+				function lyxPercent(opt) {
+					// 2，业务代码
+					var percentBox = opt && opt.box || ".percent-box",
+						percent = $(percentBox).find(".percent"),
+						num = $(percentBox).find(".num");
+					
+					percent.width(function() { //页面初始化时，进度条自动渲染
+						var $this = $(this),
+							$this_parent = $this.parent(".percent-box");
+						 	propObj = new PercentboxProp($this_parent),
+						 	bwidth = propObj.bWidth,
+						 	dwidth = propObj.dWidth,
+						 	trueWidth = bwidth*dwidth /100;
+							
+						animateFn($this, trueWidth);
+						if(opt && opt.single) opt.single($this);
+					});
+					num.html(function() { //页面初始化时，百分比数自动渲染
+						var $this = $(this),
+						    $this_parent = $this.parent(".percent-box"),
+							propObj = new PercentboxProp($this_parent),
+							dwidth = propObj.dWidth;
+						return dwidth + "%";
+					});
+					
+					// 3，事件
+					$(percentBox).bind({
+						mousemove: function(e) {
+							var $this = $(this),
+								e = e || window.event,
+								positionObj = new PercentboxPosition(e),
+								newWidth = positionObj.newWidth,
+								newNum = positionObj.CountScale(newWidth);
+							$this.find(".num").html(newNum + "%");
+						},
+						mouseleave: function(e) {
+							var $this = $(this),
+								originNum = $this.find(".percent").data("width");
+							$this.find(".num").html(originNum + "%");
+						},
+						click: function(e) {
+							var $this = $(this),
+								e = e || window.event,
+								positionObj = new PercentboxPosition(e),
+								newWidth = positionObj.newWidth,
+								newNum = positionObj.CountScale(newWidth),
+								thisPercent = $this.find(".percent");
+							$this.find(".num").html(newNum + "%");
+							thisPercent.data("width", newNum);
+							animateFn(thisPercent, newWidth);
+							if(opt && opt.click) opt.click();//点击后的回调
+						}
+					});
+
+					function animateFn(e, width) { //初始化渲染
+						e.animate({
+							width: width
+						}, 800);
+					};
+				}
+				
+				window.lyxPercent = lyxPercent;
+			})();
+			$(function(){
+				lyxPercent({
+					box : "",
+					single : function($this){
+						console.log($this)
+					},
+					click: function() { //点击后的回调
+						console.log("a")
+					}
+				}); //为页面上进度条的调用
+			});
+		</script>
+	</body>
+
+</html>
